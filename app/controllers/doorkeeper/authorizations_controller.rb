@@ -1,5 +1,5 @@
 module Doorkeeper
-  class AuthorizationsController < ::Doorkeeper::ApplicationController
+  class AuthorizationsController < ::Fiverr::ApplicationController
     before_filter :authenticate_resource_owner!
 
     def new
