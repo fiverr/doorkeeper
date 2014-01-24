@@ -2,6 +2,10 @@ module Doorkeeper
   module OAuth
     class Token
       module Methods
+      	def from_oauth_access_token_param(request)
+          request.parameters[:oauth_access_token]
+        end
+
         def from_access_token_param(request)
           request.parameters[:access_token]
         end
