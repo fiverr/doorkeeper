@@ -1,31 +1,11 @@
-case DOORKEEPER_ORM
-when :active_record
-  class User < ActiveRecord::Base
-  end
-when :mongoid2, :mongoid3
-  class User
-    include Mongoid::Document
-    include Mongoid::Timestamps
+# frozen_string_literal: true
 
-    field :name, :type => String
-    field :password, :type => String
-  end
-when :mongo_mapper
-  class User
-    include MongoMapper::Document
-    timestamps!
-
-    key :name,     String
-    key :password, String
-  end
+class ApplicationRecord < ::ActiveRecord::Base
+  self.abstract_class = true
 end
 
-class User
-  if ::Rails.version.to_i < 4
-    attr_accessible :name, :password
-  end
-
+class User < ApplicationRecord
   def self.authenticate!(name, password)
-    User.where(:name => name, :password => password).first
+    User.where(name: name, password: password).first
   end
 end

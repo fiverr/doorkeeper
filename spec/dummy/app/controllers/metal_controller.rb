@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 class MetalController < ActionController::Metal
   include AbstractController::Callbacks
   include ActionController::Head
-  include Doorkeeper::Helpers::Filter
+  include Doorkeeper::Rails::Helpers
 
-  doorkeeper_for :all
+  before_action :doorkeeper_authorize!
 
   def index
-    self.response_body = { :ok => true }.to_json
+    self.response_body = { ok: true }.to_json
   end
 end

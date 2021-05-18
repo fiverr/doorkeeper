@@ -1,29 +1,26 @@
-# Defaults. For supported versions check .travis.yml
-ENV['rails'] ||= '3.2.13'
-ENV['orm']   ||= 'active_record'
+# frozen_string_literal: true
 
-source 'https://rubygems.org'
-
-# Define Rails version
-gem 'rails', ENV['rails']
-
-gem 'database_cleaner', '~> 1.0.0.RC1' if ENV['rails'][0] == '4'
-
-case ENV['orm']
-when 'active_record'
-  gem 'activerecord'
-
-when 'mongoid2'
-  gem 'mongoid', '2.5.1'
-  gem 'bson_ext', '~> 1.7'
-
-when 'mongoid3'
-  gem 'mongoid', '3.0.10'
-
-when 'mongo_mapper'
-  gem 'mongo_mapper', '0.12.0'
-  gem 'bson_ext', '~> 1.7'
-
-end
+source "https://rubygems.org"
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 gemspec
+
+gem "rails", "~> 6.0"
+
+gem "rspec-core"
+gem "rspec-expectations"
+gem "rspec-mocks"
+gem "rspec-rails", "~> 4.0"
+gem "rspec-support"
+
+gem "rubocop", "~> 0.80"
+gem "rubocop-performance", require: false
+gem "rubocop-rails", require: false
+gem "rubocop-rspec", require: false
+
+gem "bcrypt", "~> 3.1", require: false
+
+gem "activerecord-jdbcsqlite3-adapter", platform: :jruby
+gem "sqlite3", "~> 1.4", platform: %i[ruby mswin mingw x64_mingw]
+
+gem "tzinfo-data", platforms: %i[mingw mswin x64_mingw]

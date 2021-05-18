@@ -1,46 +1,36 @@
-require 'doorkeeper/oauth/error'
-require 'doorkeeper/oauth/error_response'
-require 'doorkeeper/oauth/scopes'
-require 'doorkeeper/oauth/token_response'
-require 'doorkeeper/oauth/client_credentials/creator'
-require 'doorkeeper/oauth/client_credentials/issuer'
-require 'doorkeeper/oauth/client_credentials/validation'
+# frozen_string_literal: true
 
 module Doorkeeper
   module OAuth
-    class ClientCredentialsRequest
-      attr_accessor :issuer, :server, :client, :original_scopes, :scopes
-      attr_reader   :response
-      alias         :error_response :response
+    class ClientCredentialsRequest < BaseRequest
+      attr_reader :client, :original_scopes, :response
 
-      delegate :error, :to => :issuer
+      alias error_response response
 
-      def issuer
-        @issuer ||= Issuer.new(server, Validation.new(server, self))
-      end
+      delegate :error, to: :issuer
 
       def initialize(server, client, parameters = {})
-        @client, @server = client, server
-        @response        = nil
+        @client = client
+        @server = server
+        @response = nil
         @original_scopes = parameters[:scope]
       end
 
-      def authorize
-        status = issuer.create(client, scopes)
-        @response = if status
-          TokenResponse.new(issuer.token)
-        else
-          ErrorResponse.from_request(self)
-        end
+      def access_token
+        issuer.token
       end
 
-      # TODO: duplicated code in all flows
-      def scopes
-        @scopes ||= if @original_scopes.present?
-          Doorkeeper::OAuth::Scopes.from_string(@original_scopes)
-        else
-          server.default_scopes
-        end
+      def issuer
+        @issuer ||= ClientCredentials::Issuer.new(
+          server,
+          ClientCredentials::Validator.new(server, self),
+        )
+      end
+
+      private
+
+      def valid?
+        issuer.create(client, scopes)
       end
     end
   end
