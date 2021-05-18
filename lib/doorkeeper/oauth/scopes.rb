@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Doorkeeper
   module OAuth
     class Scopes
@@ -17,7 +19,7 @@ module Doorkeeper
         end
       end
 
-      delegate :each, :to => :@scopes
+      delegate :each, :empty?, to: :@scopes
 
       def initialize
         @scopes = []
@@ -40,20 +42,37 @@ module Doorkeeper
         @scopes.join(" ")
       end
 
-      def has_scopes?(scopes)
-        scopes.all? { |s| exists?(s) }
+      def scopes?(scopes)
+        scopes.all? { |scope| exists?(scope) }
       end
 
+      alias has_scopes? scopes?
+
       def +(other)
-        if other.is_a? Scopes
-          self.class.from_array(self.all + other.all)
-        else
-          super(other)
-        end
+        self.class.from_array(all + to_array(other))
       end
 
       def <=>(other)
-        self.map(&:to_s).sort <=> other.map(&:to_s).sort
+        if other.respond_to?(:map)
+          map(&:to_s).sort <=> other.map(&:to_s).sort
+        else
+          super
+        end
+      end
+
+      def &(other)
+        self.class.from_array(all & to_array(other))
+      end
+
+      private
+
+      def to_array(other)
+        case other
+        when Scopes
+          other.all
+        else
+          other.to_a
+        end
       end
     end
   end

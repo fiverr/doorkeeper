@@ -1,27 +1,27 @@
-require 'spec_helper_integration'
+# frozen_string_literal: true
 
-module Doorkeeper::OAuth
-  describe ClientCredentialsRequest do
-    let(:server) { Doorkeeper.configuration }
+require "spec_helper"
 
-    context 'with a valid request' do
-      let(:client) { FactoryGirl.create :application }
+RSpec.describe Doorkeeper::OAuth::ClientCredentialsRequest do
+  let(:server) { Doorkeeper.configuration }
 
-      it 'issues an access token' do
-        request = ClientCredentialsRequest.new(server, client, {})
-        expect do
-          request.authorize
-        end.to change { Doorkeeper::AccessToken.count }.by(1)
-      end
+  context "with a valid request" do
+    let(:client) { Doorkeeper::OAuth::Client.new(FactoryBot.build_stubbed(:application)) }
+
+    it "issues an access token" do
+      request = described_class.new(server, client, {})
+      expect do
+        request.authorize
+      end.to change { Doorkeeper::AccessToken.count }.by(1)
     end
+  end
 
-    describe 'with an invalid request' do
-      it 'does not issue an access token' do
-        request = ClientCredentialsRequest.new(server, nil, {})
-        expect do
-          request.authorize
-        end.to_not change { Doorkeeper::AccessToken.count }
-      end
+  describe "with an invalid request" do
+    it "does not issue an access token" do
+      request = described_class.new(server, nil, {})
+      expect do
+        request.authorize
+      end.not_to(change { Doorkeeper::AccessToken.count })
     end
   end
 end

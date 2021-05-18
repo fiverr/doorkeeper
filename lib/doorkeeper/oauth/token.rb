@@ -1,9 +1,31 @@
+# frozen_string_literal: true
+
 module Doorkeeper
   module OAuth
     class Token
+<<<<<<< HEAD
       module Methods
       	def from_oauth_access_token_param(request)
           request.parameters[:oauth_access_token]
+=======
+      class << self
+        def from_request(request, *methods)
+          methods.inject(nil) do |_, method|
+            method = self.method(method) if method.is_a?(Symbol)
+            credentials = method.call(request)
+            break credentials if credentials.present?
+          end
+        end
+
+        def authenticate(request, *methods)
+          if (token = from_request(request, *methods))
+            access_token = Doorkeeper.config.access_token_model.by_token(token)
+            if access_token.present? && Doorkeeper.config.refresh_token_enabled?
+              access_token.revoke_previous_refresh_token!
+            end
+            access_token
+          end
+>>>>>>> 88aea0f7080eb6699cf80f9de57938b44eb28235
         end
 
         def from_access_token_param(request)
@@ -15,25 +37,35 @@ module Doorkeeper
         end
 
         def from_bearer_authorization(request)
-          pattern = /^Bearer /
-          header  = request.authorization
-          header.gsub pattern, '' if header && header.match(pattern)
+          pattern = /^Bearer /i
+          header = request.authorization
+          token_from_header(header, pattern) if match?(header, pattern)
         end
-      end
 
-      extend Methods
-
-      def self.from_request(request, *methods)
-        methods.inject(nil) do |credentials, method|
-          method = self.method(method) if method.is_a?(Symbol)
-          credentials = method.call(request)
-          break credentials unless credentials.blank?
+        def from_basic_authorization(request)
+          pattern = /^Basic /i
+          header = request.authorization
+          token_from_basic_header(header, pattern) if match?(header, pattern)
         end
-      end
 
-      def self.authenticate(request, *methods)
-        token = from_request request, *methods
-        Doorkeeper::AccessToken.authenticate(token) if token
+        private
+
+        def token_from_basic_header(header, pattern)
+          encoded_header = token_from_header(header, pattern)
+          decode_basic_credentials_token(encoded_header)
+        end
+
+        def decode_basic_credentials_token(encoded_header)
+          Base64.decode64(encoded_header).split(/:/, 2).first
+        end
+
+        def token_from_header(header, pattern)
+          header.gsub(pattern, "")
+        end
+
+        def match?(header, pattern)
+          header&.match(pattern)
+        end
       end
     end
   end

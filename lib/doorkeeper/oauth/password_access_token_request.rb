@@ -1,71 +1,55 @@
-module Doorkeeper::OAuth
-  class PasswordAccessTokenRequest
-    include Doorkeeper::Validations
-    include Doorkeeper::OAuth::Helpers
+# frozen_string_literal: true
 
-    validate :client,         :error => :invalid_client
-    validate :resource_owner, :error => :invalid_resource_owner
-    validate :scopes,         :error => :invalid_scope
+module Doorkeeper
+  module OAuth
+    class PasswordAccessTokenRequest < BaseRequest
+      include OAuth::Helpers
 
-    attr_accessor :server, :resource_owner, :credentials, :access_token
-    attr_accessor :client
+      validate :client, error: :invalid_client
+      validate :client_supports_grant_flow, error: :unauthorized_client
+      validate :resource_owner, error: :invalid_grant
+      validate :scopes, error: :invalid_scope
 
-    def initialize(server, credentials, resource_owner, parameters = {})
-      @server          = server
-      @resource_owner  = resource_owner
-      @credentials     = credentials
-      @original_scopes = parameters[:scope]
+      attr_reader :client, :resource_owner, :parameters, :access_token
 
-      @client = Doorkeeper::Application.authenticate(credentials.uid, credentials.secret) if credentials
-    end
-
-    def authorize
-      validate
-      @response = if valid?
-        issue_token
-        TokenResponse.new access_token
-      else
-        ErrorResponse.from_request self
+      def initialize(server, client, resource_owner, parameters = {})
+        @server          = server
+        @resource_owner  = resource_owner
+        @client          = client
+        @parameters      = parameters
+        @original_scopes = parameters[:scope]
+        @grant_type      = Doorkeeper::OAuth::PASSWORD
       end
-    end
 
-    def valid?
-      self.error.nil?
-    end
+      private
 
-    def scopes
-      @scopes ||= if @original_scopes.present?
-        Doorkeeper::OAuth::Scopes.from_string(@original_scopes)
-      else
-        server.default_scopes
+      def before_successful_response
+        find_or_create_access_token(client, resource_owner, scopes, server)
+        super
       end
-    end
 
-  private
+      def validate_scopes
+        return true if scopes.blank?
 
-    def issue_token
-      application_id = client.id if client
+        ScopeChecker.valid?(
+          scope_str: scopes.to_s,
+          server_scopes: server.scopes,
+          app_scopes: client.try(:scopes),
+          grant_type: grant_type,
+        )
+      end
 
-      @access_token = Doorkeeper::AccessToken.create!({
-        :application_id     => application_id,
-        :resource_owner_id  => resource_owner.id,
-        :scopes             => scopes.to_s,
-        :expires_in         => server.access_token_expires_in,
-        :use_refresh_token  => server.refresh_token_enabled?
-      })
-    end
+      def validate_resource_owner
+        resource_owner.present?
+      end
 
-    def validate_scopes
-      return true unless @original_scopes.present?
-      ScopeChecker.valid?(@original_scopes, @server.scopes)
-    end
+      def validate_client
+        !parameters[:client_id] || client.present?
+      end
 
-    def validate_resource_owner
-      !!resource_owner
-    end
-
-    def validate_client
-      !credentials || !!client
+      def validate_client_supports_grant_flow
+        server_config.allow_grant_flow_for_client?(grant_type, client&.application)
+      end
     end
   end
 end

@@ -1,21 +1,36 @@
 language: ruby
-before_install:
-  - gem install bundler -v '= 1.5.1'
+cache: bundler
+
 rvm:
-  - 1.9.3
-  - 2.0.0
-  - 2.1.0
-env:
-  - rails=3.1.8
-  - rails=3.2.8
-  - rails=3.2.16
-  - rails=4.0.2
-  - rails=4.1.0.beta1
-  - orm=mongoid2
-  - orm=mongoid3
-  - orm=mongo_mapper
-services:
-  - mongodb
+  - 2.4
+  - 2.5
+  - 2.6
+  - 2.7
+  - ruby-head
+
+#before_install:
+#  - gem update --system
+#  - gem install bundler
+
+gemfile:
+  - gemfiles/rails_5_0.gemfile
+  - gemfiles/rails_5_1.gemfile
+  - gemfiles/rails_5_2.gemfile
+  - gemfiles/rails_6_0.gemfile
+  - gemfiles/rails_master.gemfile
+
 matrix:
+  fast_finish: true
+  # Run Danger only once
+  include:
+    - rvm: 2.5
+      gemfile: gemfiles/rails_5_2.gemfile
+      script: bundle exec danger
+  exclude:
+    - gemfile: gemfiles/rails_6_0.gemfile
+      rvm: 2.4
+    - gemfile: gemfiles/rails_master.gemfile
+      rvm: 2.4
   allow_failures:
-    - env: orm=mongoid2
+    - gemfile: gemfiles/rails_master.gemfile
+    - rvm: ruby-head
